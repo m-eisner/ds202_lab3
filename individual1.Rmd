@@ -31,23 +31,42 @@ dat <- na.omit(dat)
 dat %>% group_by(political_party) %>% summarize(avg_years=mean(school_years), .groups='drop') %>% arrange(avg_years)
 ```
 
+2. Create a single data frame containing records for the better educated respondents in each political party affiliation. A “better educated” respondent is someone who has strictly more years of education than the median in the same party affiliation. Print the structure of the data frame.
+
+```{r}
+educ <- dat %>% group_by(political_party) %>% filter(school_years > median(school_years))
+str(educ)
+```    
+
 For each of the investigation below, create at least one numerical summary and one appropriate visualization. Write a paragraph to describe your findings and the variables you used.
 
 3. How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
 
 ```{r}
-ggplot(dat, aes(x=marital_status, fill=happiness)) + geom_bar()
+dat1 <- mutate(dat, happy = ifelse(happiness == 'Very Happy' | happiness == 'Pretty happy', TRUE, FALSE))
+ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill')
 ```
 
 4. Does party affiliation affect the relationship you found in the last question?
 
+```{r}
+ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill') + facet_wrap(~political_party) + theme(axis.text.x=element_text(angle =- 90, vjust = 0.5))
+```
 
 5. How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
 
+```{r}
+ggplot(dat, aes(x=marital_status, y=school_years)) + geom_boxplot()
+```
 
 6. Explore two more interesting questions, and answer those questions using the GSS data.
 
+```{r}
+dat <- dat %>% mutate(work_hrs = as.numeric(work_hrs))
+dat <- na.omit(dat)
 
+ggplot(dat, aes(x=work_hrs, y=school_years)) + geom_point() + geom_smooth(method = "lm", se=FALSE)
+```
 
 The team’s exploration will be evaluated according to the general interest and the depth of the exploration.
 Tips and Resources

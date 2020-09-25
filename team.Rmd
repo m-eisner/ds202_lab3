@@ -111,7 +111,8 @@ For each of the investigation below, create at least one numerical summary and o
 3. How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
 
 ```{r}
-ggplot(dat, aes(x=marital_status, fill=happiness)) + geom_bar()
+dat1 <- mutate(dat, happy = ifelse(happiness == 'Very Happy' | happiness == 'Pretty happy', TRUE, FALSE))
+ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill')
 ```
 
 4. Does party affiliation affect the relationship you found in the last question?
