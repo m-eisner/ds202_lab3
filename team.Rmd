@@ -95,6 +95,8 @@ dat <- na.omit(dat)
 
 1. Find the average years of education for the respondents with each political party affiliation. Arrange your output in a meaningful order and print. Describe any patterns you find.
 
+Those who did not answer the question were the only group to have less than 12 years of education, which is equivalent to on average, not finishing high school. All other political party affiliations, on average, finished high school and had some length of college/university level education.
+
 ```{r}
 dat %>% group_by(political_party) %>% summarize(avg_years=mean(school_years), .groups='drop') %>% arrange(avg_years)
 ```
@@ -110,6 +112,8 @@ For each of the investigation below, create at least one numerical summary and o
 
 3. How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
 
+The only groups that had over 50% of respondents answer that they were happy were those who identified as divorced, never married, separated, or widowed. Those who were married or did not answer were the only groups where less than 50% of responses were happy.
+
 ```{r}
 dat1 <- mutate(dat, happy = ifelse(happiness == 'Very Happy' | happiness == 'Pretty happy', TRUE, FALSE))
 ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill')
@@ -117,9 +121,15 @@ ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill')
 
 4. Does party affiliation affect the relationship you found in the last question?
 
+```{r}
+ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill') + facet_wrap(~political_party) + theme(axis.text.x=element_text(angle =- 90, vjust = 0.5))
+```
 
 5. How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
 
+```{r}
+ggplot(dat, aes(x=marital_status, y=school_years)) + geom_boxplot()
+```
 
 6. Explore two more interesting questions, and answer those questions using the GSS data.
 
