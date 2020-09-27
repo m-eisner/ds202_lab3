@@ -133,7 +133,14 @@ ggplot(dat, aes(x=marital_status, y=school_years)) + geom_boxplot()
 
 6. Explore two more interesting questions, and answer those questions using the GSS data.
 
+There is no strong relationship between amount of time spent in school and amount of hours worked in a week. This is because the scatterplot shows no obvious form or direction as the points are widely spread. In addition, the linear regression line is nearly horizontal, further displaying weak correlation between the variables. 
 
+```{r}
+dat <- dat %>% mutate(work_hrs = as.numeric(work_hrs))
+dat <- na.omit(dat)
+
+ggplot(dat, aes(x=work_hrs, y=school_years)) + geom_point() + geom_smooth(method = "lm", se=FALSE)
+```
 
 The team’s exploration will be evaluated according to the general interest and the depth of the exploration.
 Tips and Resources
