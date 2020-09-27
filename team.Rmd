@@ -7,6 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+library(knitr)
 ```
 
 
@@ -87,6 +90,18 @@ library(dplyr)
 library(ggplot2)
 dat <- readxl::read_xls('./GSS.xls')
 
+j_dat <- data.frame(readxl::read_xls('/Users/jeff/Downloads/GSS.xls')) %>%
+  rename(year=Gss.year.for.this.respondent) %>%
+  rename(happiness=General.happiness) %>%
+  rename(religion_raised=Religion.in.which.raised) %>%
+  rename(political_party=Political.party.affiliation) %>%
+  rename(sex=Respondents.sex) %>%
+  rename(school_years=Highest.year.of.school.completed) %>%
+  rename(marital_status=Marital.status) %>%
+  rename(work_hrs=Number.of.hours.usually.work.a.week) %>%
+  rename(id_num=Respondent.id.number) %>%
+  rename(ballot=Ballot.used.for.interview)
+
 colnames(dat) <- c('year', 'happiness', 'religion_raised', 'political_party', 'sex', 'school_years', 'marital_status', 'work_hrs', 'id_num', 'ballot')
 
 dat <- dat %>% mutate(school_years = as.numeric(school_years))
@@ -99,6 +114,28 @@ Those who did not answer the question were the only group to have less than 12 y
 
 ```{r}
 dat %>% group_by(political_party) %>% summarize(avg_years=mean(school_years), .groups='drop') %>% arrange(avg_years)
+```
+
+The below bar graph shows the average number of years of education color-coded by political party.
+```{r}
+school <- j_dat %>% mutate(school_years = as.numeric(school_years)) %>%
+  filter(!is.na(school_years)) %>%
+  select(one_of(c("school_years", "political_party")))
+t <- school %>% 
+  group_by(political_party) %>% 
+  summarise(avg_years=mean(school_years))
+x <- c("Don't know", "No answer", "Other party", 
+       "Strong democrat", "Not str democrat", "Ind,near dem",
+       "Independent", "Ind,near rep", "Not str republican",
+       "Strong republican")
+t <- t %>% slice(match(x, political_party)) 
+t$political_party <- factor(t$political_party, levels=x)
+cbPalette <- c("#aaaaaa", "#808080", "#ffa500", "#009dff", "#26abff", "#59bfff", "#ffffff", "#f07470", "#ea4c46", "#dc1c13")
+t %>% ggplot(aes(x=political_party, y=avg_years, fill=political_party)) + 
+  geom_bar(stat="identity") + 
+  theme(legend.position="none") + 
+  scale_fill_manual(values=cbPalette) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 2. Create a single data frame containing records for the better educated respondents in each political party affiliation. A “better educated” respondent is someone who has strictly more years of education than the median in the same party affiliation. Print the structure of the data frame.
@@ -121,17 +158,36 @@ ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill')
 
 4. Does party affiliation affect the relationship you found in the last question?
 
+The below charts show that political party choice can affect the happiness levels slightly, but the numbers don't vary greatly.
+
 ```{r}
 ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill') + facet_wrap(~political_party) + theme(axis.text.x=element_text(angle =- 90, vjust = 0.5))
 ```
 
 5. How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
 
+The below boxplots show the breakdown of each marital status according to the number of years spent in school.
 ```{r}
 ggplot(dat, aes(x=marital_status, y=school_years)) + geom_boxplot()
 ```
 
+Below, the average number of years of education by marital status is shown. This plot shows that, on average, people who were never married have the most years of education. It also shows that widowed respondants had the least number of years of education, on average.
+```{r}
+marital <- j_dat %>% select(one_of(c("marital_status", "school_years"))) %>% 
+  mutate(school_years = as.numeric(school_years)) %>%
+  filter(!is.na(school_years) & marital_status != "No answer") %>% 
+  group_by(marital_status) %>%
+  summarise(avg_years=mean(school_years))
+marital %>% ggplot(aes(x=marital_status, y=avg_years)) + geom_bar(stat="identity")
+```
+
+One reason that people who are never married have a higher average education could be that they had less time to date since they were in school so long. It could also be due to the fact that respondants with a higher education level typiclly aren't as emotional since they are so academically-savvy.
+
 6. Explore two more interesting questions, and answer those questions using the GSS data.
+
+There are two questions that we will aim to answer:  
+- Relationship between amount of time spent in school vs. amount of hours worked per week  
+- How religion compares with political party choice, and how education further affects this relationship
 
 There is no strong relationship between amount of time spent in school and amount of hours worked in a week. This is because the scatterplot shows no obvious form or direction as the points are widely spread. In addition, the linear regression line is nearly horizontal, further displaying weak correlation between the variables. 
 
@@ -140,6 +196,46 @@ dat <- dat %>% mutate(work_hrs = as.numeric(work_hrs))
 dat <- na.omit(dat)
 
 ggplot(dat, aes(x=work_hrs, y=school_years)) + geom_point() + geom_smooth(method = "lm", se=FALSE)
+```
+```{r}
+religion <- j_dat %>% select(one_of(c("religion_raised", "school_years", "political_party")))  %>% 
+  mutate(school_years = as.numeric(school_years)) %>%
+  filter(!is.na(school_years) & political_party != "No answer") %>% 
+  filter(religion_raised != "Don't know" & religion_raised != "No answer") %>% 
+  filter(religion_raised != "Not applicable") %>% 
+  group_by(religion_raised, political_party) %>%
+  summarise(avg_years=mean(school_years))
+religion_count <- j_dat %>% select(one_of(c("religion_raised", "school_years", "political_party")))  %>% 
+  mutate(school_years = as.numeric(school_years)) %>%
+  filter(!is.na(school_years) & political_party != "No answer") %>% 
+  filter(religion_raised != "Don't know" & religion_raised != "No answer") %>% 
+  filter(religion_raised != "Not applicable") %>% 
+  group_by(religion_raised, political_party) %>%
+  summarise(religion_count=n())
+religion$religion_count <- religion_count$religion_count
+x <- c("Don't know","No answer", "Other party", 
+       "Strong democrat", "Not str democrat", "Ind,near dem",
+       "Independent", "Ind,near rep", "Not str republican",
+       "Strong republican")
+religion$political_party <- factor(religion$political_party, levels=x)
+cbPalette <- c("#808080", "#ffa500", "#009dff", "#26abff", "#59bfff", "#ffffff",
+               "#f07470", "#ea4c46", "#dc1c13")
+```
+
+The first plot below shows the number of respondents for each political party by religion. It is interesting to see how all of the major world religions lean more towards the democratic side. Typically, republican ideologies line up with conservative religious beliefs, so to see this trend is very surprising.
+```{r}
+religion %>% ggplot(aes(x=religion_raised, y=religion_count, fill=political_party)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  scale_fill_manual(values=cbPalette) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+The second plot shows the average number of years of education for each political party by religion. This shows that several of the world religions have a higher average education level on the republican side. So, most religions have respondents with a higher average education level that vote republican, but more total number of democratic votes.
+```{r}
+religion %>% ggplot(aes(x=religion_raised, y=avg_years, fill=political_party)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  scale_fill_manual(values=cbPalette) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 The team’s exploration will be evaluated according to the general interest and the depth of the exploration.
