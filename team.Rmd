@@ -12,85 +12,11 @@ knitr::opts_chunk$set(warning = FALSE)
 library(knitr)
 ```
 
-
-## Outline
-
-* Work in assigned pairs, as in Lab 2
-* Create a repository (one per team) & give access to your teammate
-* For a refreshment of git & github, review the procedures for collaboration for Lab 2.
-* Explore what leads to happiness using data from the General Social Survey
-* Create an R markdown file that contains all code to read the data, create the plots, and your answers.
-* Teammates will review and revise each other’s work.
-* Submit!
-
-## Submission Requirements
-
-* A team member should create a GitHub repository called ds202_lab3 which includes the group work.
-
-* Each team member should create at least one commit with message “Review and Revision”, which include changes on the analysis of your partner’s.
-
-* The team will collaborate on team.Rmd to answer all the questions, and also include your individual exploration in either individual1.Rmd or individual2.Rmd. **Only the report generated from `team.Rmd` will be graded.**
-
-* Include the data you used extracted from the General Social Survey website.
-
-* The correct folder structure is as below. The folder ds202_lab3 is a git repository.
-
-    ds202_lab3
-    |-- individual1.Rmd
-    |-- individual2.Rmd
-    |-- team.Rmd
-    |-- *.html
-    |-- Data files...
-
-## Background
-
-The General Social Survey (GSS) has been run by NORC since 1972 to keep track of current opinions across the United States.
-
-There is a data explorer which let you to interactively explore and extract the data here https://gssdataexplorer.norc.org/
-
-## Part zero: Exploring the GSS data
-
-You can search for information you are interested in under in Keyword search box. Try “happiness”. If you do not find desired result, click the dropdown arrow, and select “All” to search in all available information and not just the variable names. We will focus on variables that have a long span of availability over the years. Discuss interesting findings in your study group.
-
-We will be exploring variables related to
-
-* **Happiness**
-* **Family (marital status)**
-* **Education**
-* **Political affilation**
-* Many other possible topics, such as Work (hours) and Belief – it is up to you
-
-## Part one: Extracting and loading data
-
-1. Go to https://gssdataexplorer.norc.org/
-2. Click Search variable
-3. Search “happy”; click add to cart; go back. Repeat for “marital status”, “educ”, “respondent sex”, “political party affiliation”, and other variables (you decide)
-4. After you finished adding the variables, click Actions – Save to Project
-5. Register an account
-6. Click Default Project
-7. Click Actions – Extract data
-8.  a. Name your extract (e.g. extract1) – click NEXT;
-    b. ADD ALL variables – click NEXT;
-    c. click NEXT;
-    d. **Check Excel Workbook (data + metadata), and leave all others unchecked;**
-    e. CREATE EXTRACT
-9. Wait for the extract to be ready, and then download an archive file.
-10. Extract the archive file (ending with .tar.gz). Windows users: You may need 7-Zip
-11. Load the Excel file into R, using
-
-install.packages('readxl')
-dat <- readxl::read_xls('PATH_TO_EXL/GSS.xls')
-
-## Part two: Exploration
-
-Use `ggplot2` to create the plots, and `dplyr` to manipulate the data frame as much as possible. You may want to rename the columns of the data frame for your convenience using `rename` in `dplyr`.
-
 ```{r}
 library(dplyr)
 library(ggplot2)
-dat <- readxl::read_xls('./GSS.xls')
 
-j_dat <- data.frame(readxl::read_xls('/Users/jeff/Downloads/GSS.xls')) %>%
+j_dat <- data.frame(readxl::read_xls('./GSS.xls')) %>%
   rename(year=Gss.year.for.this.respondent) %>%
   rename(happiness=General.happiness) %>%
   rename(religion_raised=Religion.in.which.raised) %>%
@@ -102,6 +28,7 @@ j_dat <- data.frame(readxl::read_xls('/Users/jeff/Downloads/GSS.xls')) %>%
   rename(id_num=Respondent.id.number) %>%
   rename(ballot=Ballot.used.for.interview)
 
+dat <- readxl::read_xls('./GSS.xls')
 colnames(dat) <- c('year', 'happiness', 'religion_raised', 'political_party', 'sex', 'school_years', 'marital_status', 'work_hrs', 'id_num', 'ballot')
 
 dat <- dat %>% mutate(school_years = as.numeric(school_years))
@@ -145,8 +72,6 @@ educ <- dat %>% group_by(political_party) %>% filter(school_years > median(schoo
 str(educ)
 ```
 
-For each of the investigation below, create at least one numerical summary and one appropriate visualization. Write a paragraph to describe your findings and the variables you used.
-
 **3. How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.**
 
 The only groups that had over 50% of respondents answer that they were happy were those who identified as divorced, never married, separated, or widowed. Those who were married or did not answer were the only groups where less than 50% of responses were happy.
@@ -166,12 +91,20 @@ ggplot(dat1, aes(x=marital_status, fill=happy)) + geom_bar(position='fill') + fa
 
 **5. How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?**
 
-The below boxplots show the breakdown of each marital status according to the number of years spent in school.
+The below boxplots show the breakdown of each marital status according to the number of years spent in school.  
+
 ```{r}
 ggplot(dat, aes(x=marital_status, y=school_years)) + geom_boxplot()
 ```
 
-Below, the average number of years of education by marital status is shown. This plot shows that, on average, people who were never married have the most years of education. It also shows that widowed respondants had the least number of years of education, on average.
+In the table below, we see that widowed and separated respondents sit below 12 years of education on average. Married, divorced, and never married respondents average around 13 years of education, and those who did not answer averaged around 15.5 years of education.
+
+```{r}
+dat %>% group_by(marital_status) %>% summarize(avg_years=mean(school_years), .groups='drop') %>% arrange(avg_years)
+```
+
+Below, the average number of years of education by marital status is shown. This plot shows that, on average, people who were never married have the most years of education. It also shows that widowed respondents had the least number of years of education, on average.
+
 ```{r}
 marital <- j_dat %>% select(one_of(c("marital_status", "school_years"))) %>% 
   mutate(school_years = as.numeric(school_years)) %>%
@@ -181,7 +114,7 @@ marital <- j_dat %>% select(one_of(c("marital_status", "school_years"))) %>%
 marital %>% ggplot(aes(x=marital_status, y=avg_years)) + geom_bar(stat="identity")
 ```
 
-One reason that people who are never married have a higher average education could be that they had less time to date since they were in school so long. It could also be due to the fact that respondants with a higher education level typiclly aren't as emotional since they are so academically-savvy.
+One reason that people who are never married have a higher average education could be that they had less time to date since they were in school so long. It could also be due to the fact that respondents with a higher education did not have a family with a significant other, so more money could be spent on education.
 
 **6. Explore two more interesting questions, and answer those questions using the GSS data.**
 
@@ -197,6 +130,7 @@ dat <- na.omit(dat)
 
 ggplot(dat, aes(x=work_hrs, y=school_years)) + geom_point() + geom_smooth(method = "lm", se=FALSE)
 ```
+
 ```{r}
 religion <- j_dat %>% select(one_of(c("religion_raised", "school_years", "political_party")))  %>% 
   mutate(school_years = as.numeric(school_years)) %>%
@@ -223,6 +157,7 @@ cbPalette <- c("#808080", "#ffa500", "#009dff", "#26abff", "#59bfff", "#ffffff",
 ```
 
 The first plot below shows the number of respondents for each political party by religion. It is interesting to see how all of the major world religions lean more towards the democratic side. Typically, republican ideologies line up with conservative religious beliefs, so to see this trend is very surprising.
+
 ```{r}
 religion %>% ggplot(aes(x=religion_raised, y=religion_count, fill=political_party)) + 
   geom_bar(stat="identity", position="dodge") + 
@@ -231,15 +166,10 @@ religion %>% ggplot(aes(x=religion_raised, y=religion_count, fill=political_part
 ```
 
 The second plot shows the average number of years of education for each political party by religion. This shows that several of the world religions have a higher average education level on the republican side. So, most religions have respondents with a higher average education level that vote republican, but more total number of democratic votes.
+
 ```{r}
 religion %>% ggplot(aes(x=religion_raised, y=avg_years, fill=political_party)) + 
   geom_bar(stat="identity", position="dodge") + 
   scale_fill_manual(values=cbPalette) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
-
-The team’s exploration will be evaluated according to the general interest and the depth of the exploration.
-Tips and Resources
-
-* Decide a common version of the dataset to work on
-* Take a look at the key trends to find interesting questions to explore. 
